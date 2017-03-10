@@ -29,9 +29,23 @@ namespace Platypus
 
 		static void Main(string[] args)
 		{
-            
-            
 
+            List<Bitmap> images = new List<Bitmap>();
+            List<string> names = new List<string>();
+            getTexturePath(@"G:\Resources");
+            for (int i = 0; i < _loadPath.Count; i++)
+            {
+                Console.WriteLine(string.Format("Processing picture {0}", _loadPath[i]));
+                Bitmap bitmap = BitmapHelper.ReadImage(_loadPath[i]);
+                string name = System.IO.Path.GetFileNameWithoutExtension(_loadPath[i]);
+                images.Add(bitmap);
+                names.Add(name);
+            }
+            Package.Packager.init(images, names, 1024, 1024);
+            Package.Packager.package();
+            Package.Packager.saveTexture(@"G:\Resources");
+
+            /*
             ParamsProcesser processer = new ParamsProcesser();
             processer.register(READ_PATH, "The load path of textures", getTexturePath);
             processer.register(SAVE_PATH, "The save path of textures", getSavePath);
@@ -44,6 +58,7 @@ namespace Platypus
             {
             case FunctionType.PACKAGE:
                 List<Bitmap> images = new List<Bitmap>();
+                List<string> names = new List<string>();
                 getTexturePath(@"G:\Resources");
                 for (int i = 0; i < _loadPath.Count; i++)
                 {
@@ -51,9 +66,8 @@ namespace Platypus
                     Bitmap bitmap = BitmapHelper.ReadImage(_loadPath[i]);
                     images.Add(bitmap);
                 }
-                Package.Packager.init(images, 1024, 1024);
+                Package.Packager.init(images, names 1024, 1024);
                 Package.Packager.package();
-                Package.Packager.printVectors();
                 break;
             case FunctionType.SLICE:
                 for (int i = 0; i < _loadPath.Count; i++)
@@ -67,7 +81,7 @@ namespace Platypus
                 break;
             default:
                 break;
-            }
+            }*/
 
             Console.WriteLine("Please Press Any Key");
             Console.ReadKey();

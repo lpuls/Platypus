@@ -10,18 +10,23 @@ namespace Platypus.Package
         private static int _curArea = 0;
         private static int _width = 0;
         private static int _height = 0;
-        private static List<Bitmap> _images = new List<Bitmap>();
+        private static Dictionary<string, Bitmap> _images = new Dictionary<string, Bitmap>();
         private static List<Position> _vectors = new List<Position>();
         private static List<TextureBlock> _blocks = new List<TextureBlock>();
 
-        public static void init(List<Bitmap> images, int width, int height)
+        public static void init(List<Bitmap> images, List<string> names, int width, int height)
         {
-            _images = images;
+            // _images = images;
             _width = width;
             _height = height;
             _area = width * height;
             _curArea = width * height;
+            // _names = names;
             _blocks.Clear();
+
+            for (int i = 0; i < images.Count; i++)
+                _images[names[i]] = images[i];
+
             sortTexture();
             for (int i = 0; i < _blocks.Count; i++)
                 Console.WriteLine(string.Format("Width: {0}, Height: {1}", _blocks[i].width, _blocks[i].height));
@@ -33,13 +38,14 @@ namespace Platypus.Package
 
         private static void sortTexture()
         {
-            for (int i = 0; i < _images.Count; i++)
+            // for (int i = 0; i < _images.Count; i++)
+            foreach (var item in _images)
             {
-                Bitmap image = _images[i];
+                Bitmap image = item.Value;
                 TextureBlock block = new TextureBlock();
                 block.width = image.Width;
                 block.height = image.Height;
-                block.image = i;
+                block.name = item.Key;
                 _blocks.Add(block);
             }
             _blocks.Sort((TextureBlock a, TextureBlock b) => 
@@ -127,17 +133,22 @@ namespace Platypus.Package
 
         public static void saveTexture(string path, string textureName = "Texture")
         {
+            TextureData textureData = new TextureData();
+            textureData.name = string.Format("{0}.png", textureName);
+            textureData.imagePath = textureData.name;
+            textureData.SubTexture = _blocks;
+            string json = JsonHelper.toJson<TextureData>(textureData);
+            JsonHelper.saveFile(string.Format("{0}/{1}.json", path, textureName), json);
+
             Bitmap texture = new Bitmap(_width, _height);
             Graphics g = Graphics.FromImage(texture);
             g.Clear(Color.FromArgb(0, 0, 0, 0));
             for (int i = 0; i < _blocks.Count; i++)
             {
                 TextureBlock block = _blocks[i];
-                if (block.image >= 0 && block.image < _images.Count)
-                {
-                    Bitmap blockTexture = _images[block.image];
-                    g.DrawImage(blockTexture, new PointF(block.x, block.y));
-                }
+                Bitmap image = null;
+                if (_images.TryGetValue(block.name, out image))
+                    g.DrawImage(image, new PointF(block.x, block.y));
             }
             BitmapHelper.SaveImage(string.Format("{0}/{1}.png", path, textureName), texture);
 

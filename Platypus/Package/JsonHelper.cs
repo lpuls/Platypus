@@ -30,7 +30,7 @@ namespace Platypus.Package
             return json;
         }
 
-        private static void saveFile(string path, string content)
+        public static void saveFile(string path, string content)
         {
             using (System.IO.StreamWriter file = new System.IO.StreamWriter(path, true))
             {
