@@ -8,13 +8,23 @@ using System.Threading.Tasks;
 
 namespace Platypus
 {
+    enum FunctionType
+    {
+        PACKAGE,
+        SLICE
+    }
+
 	class Program
 	{
 		private static string READ_PATH = "-i";
 		private static string SAVE_PATH = "-o";
 		private static string CUT_OFF_VALUE = "-a";
+        private static string FUCTION_TYPE = "-t";
+        private static string SLICE_TEXTURE = "s";
+        private static string PACKAGE_TEXTURE = "p";
 
         private static string _savePath = "";
+        private static FunctionType _type = FunctionType.SLICE;
         private static List<string> _loadPath = new List<string>();
 
 		static void Main(string[] args)
@@ -24,17 +34,29 @@ namespace Platypus
             processer.register(READ_PATH, "The load path of textures", getTexturePath);
             processer.register(SAVE_PATH, "The save path of textures", getSavePath);
             processer.register(CUT_OFF_VALUE, "The cut off of textures", getCutOff);
+            processer.register(FUCTION_TYPE, "How to deal with textures s(slice) or p(package)", setType);
 
             processer.trigger(args);
 
-            for (int i = 0; i < _loadPath.Count; i++)
+            switch (_type)
             {
-                Console.WriteLine(string.Format("Processing picture {0}", _loadPath[i]));
-                Bitmap bitmap = BitmapHelper.ReadImage(_loadPath[i]);
-                Slice.init(_savePath, bitmap);
-                Slice.SliceTexture();
-                Slice.clear();
+            case FunctionType.PACKAGE:
+                Console.WriteLine("Package");
+                break;
+            case FunctionType.SLICE:
+                for (int i = 0; i < _loadPath.Count; i++)
+                {
+                    Console.WriteLine(string.Format("Processing picture {0}", _loadPath[i]));
+                    Bitmap bitmap = BitmapHelper.ReadImage(_loadPath[i]);
+                    Slice.init(_savePath, bitmap);
+                    Slice.SliceTexture();
+                    Slice.clear();
+                }
+                break;
+            default:
+                break;
             }
+            
 
             Console.WriteLine("Please Press Any Key");
             Console.ReadKey();
@@ -67,6 +89,16 @@ namespace Platypus
             if (!int.TryParse(value, out cutOff))
                 Console.WriteLine(string.Format("{0} is invalid value"));
             Slice.cutOff = cutOff;
+        }
+
+        private static void setType(string value)
+        {
+            if (value.Equals(SLICE_TEXTURE))
+                _type = FunctionType.SLICE;
+            else if (value.Equals(PACKAGE_TEXTURE))
+                _type = FunctionType.PACKAGE;
+            else
+                Console.WriteLine("Unkown Type");
         }
 
 	}
