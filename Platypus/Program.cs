@@ -29,6 +29,8 @@ namespace Platypus
 
 		static void Main(string[] args)
 		{
+            
+            
 
             ParamsProcesser processer = new ParamsProcesser();
             processer.register(READ_PATH, "The load path of textures", getTexturePath);
@@ -41,7 +43,17 @@ namespace Platypus
             switch (_type)
             {
             case FunctionType.PACKAGE:
-                Console.WriteLine("Package");
+                List<Bitmap> images = new List<Bitmap>();
+                getTexturePath(@"G:\Resources");
+                for (int i = 0; i < _loadPath.Count; i++)
+                {
+                    Console.WriteLine(string.Format("Processing picture {0}", _loadPath[i]));
+                    Bitmap bitmap = BitmapHelper.ReadImage(_loadPath[i]);
+                    images.Add(bitmap);
+                }
+                Package.Packager.init(images, 1024, 1024);
+                Package.Packager.package();
+                Package.Packager.printVectors();
                 break;
             case FunctionType.SLICE:
                 for (int i = 0; i < _loadPath.Count; i++)
@@ -56,7 +68,6 @@ namespace Platypus
             default:
                 break;
             }
-            
 
             Console.WriteLine("Please Press Any Key");
             Console.ReadKey();
