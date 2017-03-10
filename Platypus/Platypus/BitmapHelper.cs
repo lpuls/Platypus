@@ -37,6 +37,7 @@ namespace Platypus
 		public static void SaveImage(string path, Bitmap image)
 		{
 			image.Save(path, System.Drawing.Imaging.ImageFormat.Png);
+            Console.WriteLine(path);
 		}
 
 	}

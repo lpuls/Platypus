@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Drawing;
 
 namespace Platypus
@@ -11,11 +12,27 @@ namespace Platypus
 		private static List<Position> _pixelQueue = new List<Position>();  // 用来记录待检查的像素点
 		private static TextureGather _gather = null;
 		private static string _savePath = string.Empty;
+        private static int _processValue = 0;
 
 		public static int cutOff
 		{
 			set { _cutOff = value; }
 		}
+
+        public static int processValue
+        {
+            get { return _processValue; }
+        }
+
+        public static int MaxPixel
+        {
+            get
+            {
+                if (null != _image)
+                    return _image.Width * _image.Height;
+                return 0;
+            }
+        }
 
 		public static void init(string savePath, Bitmap image)
 		{
@@ -23,6 +40,15 @@ namespace Platypus
 			_savePath = savePath;
 			SetStand(_image.Width, _image.Height);
 		}
+
+        public static void clear()
+        {
+            _image = null;
+            _gather = null;
+            _processValue = 0;
+            _pixelQueue.Clear();
+            _stand = null;
+        }
 
 		private static void SetStand(int width, int height)
 		{
@@ -33,7 +59,7 @@ namespace Platypus
 		}
 
 		// 划分图片
-		private static void SliceTexture()
+		public static void SliceTexture()
 		{
 			int gatherCount = 0;
 			bool isLucency = true;
@@ -41,7 +67,9 @@ namespace Platypus
 			{
 				for (int j = 0; j < _image.Height; j++)
 				{
-					Color pixel = _image.GetPixel(i, j);
+                    _processValue++;
+                    // Console.WriteLine(_processValue);
+                    Color pixel = _image.GetPixel(i, j);
 					// 根据找到的第一个非透时像素点开始划分像素值
 					if (isLucency) 
 					{
@@ -52,6 +80,8 @@ namespace Platypus
 							SliceTextureImpl(gatherCount);
 
 							// 将得到的像素值分保存起来
+                            if (gatherCount == 79)
+                                Console.WriteLine("pause");
 							Bitmap image = BitmapHelper.ToImage(_gather);
 							BitmapHelper.SaveImage(string.Format("{0}/Texture_{1}.png", _savePath, _gather.id), image);
 							_gather = null;
@@ -62,7 +92,7 @@ namespace Platypus
 					}
 					else  // 划分像素集后，找到第一个透明像素点，并使状态恢复到划分前
 					{
-						if (0 >= pixel.A)
+						if (_cutOff > pixel.A)
 							isLucency = true;
 					}
 					_stand[i, j] = true;
@@ -80,7 +110,7 @@ namespace Platypus
 				return;
 
 			Color color = _image.GetPixel(x, y);
-			if (0 >= color.A)
+			if (_cutOff >= color.A)
 				return;
 
 			_stand[x, y] = true;
