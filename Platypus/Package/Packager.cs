@@ -6,30 +6,24 @@ namespace Platypus.Package
 {
     public class Packager
     {
-        private static int _area = 0;
-        private static int _curArea = 0;
-        private static int _width = 0;
-        private static int _height = 0;
-        private static Dictionary<string, Bitmap> _images = new Dictionary<string, Bitmap>();
+        private static Color INVALID = Color.FromArgb(0, 0, 0, 0);
+        private static Bitmap _texture = null;  // new Bitmap(_width, _height);
+        private static Graphics _graphics = null;
         private static List<Position> _vectors = new List<Position>();
         private static List<TextureBlock> _blocks = new List<TextureBlock>();
+        private static Dictionary<string, Bitmap> _images = new Dictionary<string, Bitmap>();
 
         public static void init(List<Bitmap> images, List<string> names, int width, int height)
         {
-            // _images = images;
-            _width = width;
-            _height = height;
-            _area = width * height;
-            _curArea = width * height;
-            // _names = names;
+            _texture = new Bitmap(width, height);
+            _graphics = Graphics.FromImage(_texture);
+            // _graphics.Clear(INVALID);
             _blocks.Clear();
 
             for (int i = 0; i < images.Count; i++)
                 _images[names[i]] = images[i];
 
             sortTexture();
-            for (int i = 0; i < _blocks.Count; i++)
-                Console.WriteLine(string.Format("Width: {0}, Height: {1}", _blocks[i].width, _blocks[i].height));
 
             // 输入当前最大的4个顶点, 按先左上，后右下的排序方式
             _vectors.Clear();
@@ -59,57 +53,50 @@ namespace Platypus.Package
             for (int i = 0; i < _blocks.Count; i++)
             {
                 TextureBlock block = _blocks[i];
-                int area = block.width * block.height;
-                if (area > _curArea)
-                {
-                    Console.WriteLine("There is not enough area");
-                    return;
-                }
-
-                // 选取出前左上的点
-                if (_vectors.Count <= 0)
-                {
-                    Console.WriteLine("Unknow Error");
-                    return;
-                }
-
-                // 检查每个顶点，直到找到合适的
                 for (int j = 0; j < _vectors.Count; j++)
                 {
                     Position position = _vectors[j];
-                    int spaceX = _width - position.x;
-                    int spaceY = _height - position.y;
-                    if (spaceX >= 0 && spaceY >= 0)
+                    if (!suitableBlocks(position, block.width, block.height))
+                        continue;
+
+                    drawTexture(position.x, position.y, block.name);
+                    Console.WriteLine(block.name);
+                    // BitmapHelper.SaveImage(string.Format("{0}/{1}.png", @"G:\Resources", "Texture"), _texture);
+
+                    // 修改新的节点
+                    removeVector(position.x, position.y);
+                    int newX = position.x + block.width;
+                    int newY = position.y + block.height;
+                    // 检查右上角
+                    if (newX < _texture.Width && position.y < _texture.Height)
                     {
-                        removeVector(position.x, position.y);
-                        block.x = position.x;
-                        block.y = position.y;
-                        int nextX = position.x + block.width;
-                        int nextY = position.y + block.height;
-                        if (nextX < _width && position.y < _height)
-                            pushVector(nextX, position.y);
-                        else if (position.x < _width && nextY < _height)
-                            pushVector(position.x, nextY);
-                        else if (nextX < _width && nextY < _height)
-                            pushVector(nextX, nextY);
-                        break;
+                        removeInvalidVector(newX, position.y, block.width, block.height);
+                        pushVector(newX, position.y);
                     }
-                    
+                    // 检查左下角
+                    if (position.x < _texture.Width && newY < _texture.Height)
+                    {
+                        removeInvalidVector(position.x, newY, block.width, block.height);
+                        pushVector(position.x, newY);
+                    }
+                    // 检查右下角
+                    if (newX < _texture.Width && newY < _texture.Height)
+                    {
+                        removeInvalidVector(newX, newY, block.width, block.height);
+                        pushVector(newX, newY);
+                    }
+                    break;
                 }
             }
         }
 
-        private static void pushVector(int x, int y)
+        public static void pushVector(int x, int y)
         {
             for (int i = 0; i < _vectors.Count; i++)
             {
+                // TODO 这里也有BUG
                 Position vector = _vectors[i];
-                if (x < vector.x)
-                {
-                    _vectors.Insert(i, new Position(x, y));
-                    return;
-                }
-                else if (y < vector.y)
+                if (x < vector.x && y < vector.y)
                 {
                     _vectors.Insert(i, new Position(x, y));
                     return;
@@ -118,7 +105,20 @@ namespace Platypus.Package
             _vectors.Add(new Position(x, y));
         }
 
-        private static void removeVector(int x, int y)
+        public static void removeInvalidVector(int x, int y, int width, int height)
+        {
+            for (int i = 0; i < _vectors.Count; i++)
+            {
+                Position vector = _vectors[i];
+                if (x - vector.x < width && y - vector.y < height)
+                {
+                    _vectors.Remove(vector);
+                    i--;
+                }
+            }
+        }
+
+        public static void removeVector(int x, int y)
         {
             for (int i = 0; i < _vectors.Count; i++)
             {
@@ -131,26 +131,61 @@ namespace Platypus.Package
             }
         }
 
+        private static bool suitableBlocks(Position position, int width, int height)
+        {
+            if ((_texture.Width - position.x < width) || (_texture.Height - position.y < height))
+                return false;
+
+            for (int i = position.x; i < width; i++)
+            {
+                for (int j = 0; j < height; j++)
+                {
+                    Color color = _texture.GetPixel(i, j);
+                    if (!color.Equals(INVALID))
+                        return false;
+                }
+            }
+            return true;
+        }
+
+        private static void drawTexture(int x, int y, string imageName)
+        {
+            Bitmap image = null;
+            if (_images.TryGetValue(imageName, out image))
+            {
+                _graphics.DrawImage(image, new PointF(x, y));
+            }
+        }
+
         public static void saveTexture(string path, string textureName = "Texture")
         {
+            /*
             TextureData textureData = new TextureData();
             textureData.name = string.Format("{0}.png", textureName);
             textureData.imagePath = textureData.name;
             textureData.SubTexture = _blocks;
             string json = JsonHelper.toJson<TextureData>(textureData);
             JsonHelper.saveFile(string.Format("{0}/{1}.json", path, textureName), json);
+            */
 
+            /*
             Bitmap texture = new Bitmap(_width, _height);
             Graphics g = Graphics.FromImage(texture);
             g.Clear(Color.FromArgb(0, 0, 0, 0));
             for (int i = 0; i < _blocks.Count; i++)
             {
                 TextureBlock block = _blocks[i];
+                Console.WriteLine("Name: {0}, X: {1}, Y: {2}, Whidth: {3}, Height: {4}", block.name, block.x, block.y, block.width, block.height);
                 Bitmap image = null;
                 if (_images.TryGetValue(block.name, out image))
+                {
                     g.DrawImage(image, new PointF(block.x, block.y));
+                    // BitmapHelper.SaveImage(string.Format("{0}/{1}.png", path, textureName), texture);
+                    // Console.Write("");
+                }
             }
-            BitmapHelper.SaveImage(string.Format("{0}/{1}.png", path, textureName), texture);
+            */
+            BitmapHelper.SaveImage(string.Format("{0}/{1}.png", path, textureName), _texture);
 
         }
 

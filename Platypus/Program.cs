@@ -29,13 +29,11 @@ namespace Platypus
 
 		static void Main(string[] args)
 		{
-
             List<Bitmap> images = new List<Bitmap>();
             List<string> names = new List<string>();
-            getTexturePath(@"G:\Resources");
+            getTexturePath(@"G:\Resources\Example");
             for (int i = 0; i < _loadPath.Count; i++)
             {
-                Console.WriteLine(string.Format("Processing picture {0}", _loadPath[i]));
                 Bitmap bitmap = BitmapHelper.ReadImage(_loadPath[i]);
                 string name = System.IO.Path.GetFileNameWithoutExtension(_loadPath[i]);
                 images.Add(bitmap);
@@ -43,7 +41,7 @@ namespace Platypus
             }
             Package.Packager.init(images, names, 1024, 1024);
             Package.Packager.package();
-            Package.Packager.saveTexture(@"G:\Resources");
+            Package.Packager.saveTexture(@"G:\Resources", "Texture");
 
             /*
             ParamsProcesser processer = new ParamsProcesser();
